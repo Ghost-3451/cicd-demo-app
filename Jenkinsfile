@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'REPO_URL', defaultValue: 'https://github.com/Ваш_Логин/cicd-demo-app.git', description: 'URL репозитория (Fork)')
-        string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Ветка для сборки')
-        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Запускать unit-тесты?')
+        string(name: 'REPO_URL', defaultValue: 'https://github.com/Ghost-3451/cicd-demo-app.git')
+        string(name: 'GIT_BRANCH', defaultValue: 'master')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true)
     }
 
     stages {
