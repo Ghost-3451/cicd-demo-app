@@ -1,7 +1,5 @@
 [run]
-omit =
-    tests/*
-    */__init__.py
+source = src
 
 [report]
 show_missing = true

@@ -1,0 +1,60 @@
+---
+- name: Deploy the local calculator service
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    docker_socket: unix:///var/run/docker.sock
+  tasks:
+    - name: Validate deployment variables
+      ansible.builtin.assert:
+        that:
+          - app_image is defined
+          - app_image | default('') | length > 0
+          - app_port is defined
+          - (app_port | default('') | string) is match('^[0-9]+$')
+          - (app_port | default(0) | int) >= 1024
+          - (app_port | default(0) | int) <= 65535
+        fail_msg: Pass app_image and app_port (1024-65535).
+
+    - name: Find the image in the local Docker Engine
+      community.docker.docker_image_info:
+        docker_host: "{{ docker_socket }}"
+        name: "{{ app_image }}"
+      register: local_image
+
+    - name: Require an already built image
+      ansible.builtin.assert:
+        that:
+          - local_image.images | length == 1
+        fail_msg: The image is missing in the local Docker Engine.
+
+    - name: Start or update student-app
+      community.docker.docker_container:
+        docker_host: "{{ docker_socket }}"
+        name: student-app
+        image: "{{ app_image }}"
+        pull: never
+        state: started
+        restart_policy: unless-stopped
+        recreate: false
+        restart: false
+        published_ports:
+          - "127.0.0.1:{{ app_port }}:8080"
+
+    - name: Wait for the health endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: true
+        use_proxy: false
+        timeout: 3
+      register: health
+      until:
+        - health.status | default(0) == 200
+        - "health.json | default({}) == {'status': 'ok'}"
+      retries: 20
+      delay: 2
+      changed_when: false
